@@ -1,0 +1,50 @@
+--[[
+@d3leet3d
+https://github.com/d3leet3d/CustomEvent.luau
+]]
+local CustomEvent = {}
+local Class = {}
+Class.__index = Class
+
+function CustomEvent.new()
+	local self = setmetatable({ Listeners = {} }, Class)
+	return self
+end
+
+export type CustomEventClass = typeof(CustomEvent.new())
+
+function Class.Connect(self: CustomEventClass, Callback: (...any) -> ())
+	table.insert(self.Listeners, Callback)
+	return {
+		Disconnect = function()
+			for Index, Fn in self.Listeners do
+				if Fn == Callback then
+					table.remove(self.Listeners, Index)
+					break
+				end
+			end
+		end,
+	}
+end
+
+function Class.Fire(self: CustomEventClass, ...: any)
+	for _, Callback in self.Listeners do
+		Callback(...)
+	end
+end
+
+function Class.Wait(self: CustomEventClass): ...any
+	local Thread = coroutine.running()
+	local Connection
+	Connection = self:Connect(function(...: any)
+		Connection:Disconnect()
+		task.spawn(Thread, ...)
+	end)
+	return coroutine.yield()
+end
+
+function Class.Destroy(self: CustomEventClass)
+	table.clear(self.Listeners)
+end
+
+return CustomEvent
